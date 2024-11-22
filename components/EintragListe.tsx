@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useHandbuch } from '../context/HandbuchContext';
 import { EintragForm } from './EintragForm';
 import { Button } from "@/components/ui/button"
@@ -13,22 +13,23 @@ export const EintragListe: React.FC = () => {
   const [, setEditId] = useState<string | null>(null);
   const [selectedKategorie, setSelectedKategorie] = useState<string>('');
   const [selectedFehlermeldung, setSelectedFehlermeldung] = useState<string>('');
+  const [updateTrigger, setUpdateTrigger] = useState(0);
 
   const filteredEintraege = useMemo(() => {
     if (!selectedKategorie) return eintraege;
     return eintraege.filter(eintrag => eintrag && eintrag.kategorie === selectedKategorie);
-  }, [eintraege, selectedKategorie]);
+  }, [eintraege, selectedKategorie, updateTrigger]);
 
   const fehlermeldungen = useMemo(() => {
     return [...new Set(filteredEintraege
       .filter(eintrag => eintrag && eintrag.fehlermeldung)
       .map(eintrag => eintrag.fehlermeldung)
     )];
-  }, [filteredEintraege]);
+  }, [filteredEintraege, updateTrigger]);
 
   const selectedEintrag = useMemo(() => {
     return filteredEintraege.find(eintrag => eintrag?.fehlermeldung === selectedFehlermeldung);
-  }, [filteredEintraege, selectedFehlermeldung]);
+  }, [filteredEintraege, selectedFehlermeldung, updateTrigger]);
 
   return (
     <div className="space-y-4">
@@ -78,7 +79,10 @@ export const EintragListe: React.FC = () => {
                       Ändern Sie die Details des Eintrags und klicken Sie auf &apos;Aktualisieren&apos;.
                     </DialogDescription>
                   </DialogHeader>
-                  <EintragForm editId={selectedEintrag.id} onSubmit={() => setEditId(null)} />
+                  <EintragForm editId={selectedEintrag.id} onSubmit={() => {
+                    setEditId(null);
+                    setUpdateTrigger(prev => prev + 1);
+                  }} />
                 </DialogContent>
               </Dialog>
               <Button 
@@ -101,4 +105,3 @@ export const EintragListe: React.FC = () => {
     </div>
   );
 };
-

@@ -1,152 +1,89 @@
-import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import React, { useState, useEffect } from 'react';
+import { useHandbuch } from '../context/HandbuchContext';
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useToast } from "@/hooks/use-toast"
+import { DialogClose } from "@/components/ui/dialog"
 
-type EintragType = {
-  id: string;
-  kategorie: string;
-  fehlermeldung: string;
-  beschreibung: string;
-  loesung: string;
+type EintragFormProps = {
+  editId?: string;
+  onSubmit: () => void;
 };
 
-type HandbuchContextType = {
-  eintraege: EintragType[];
-  kategorien: string[];
-  addEintrag: (eintrag: Omit<EintragType, 'id'>) => Promise<void>;
-  updateEintrag: (id: string, eintrag: Omit<EintragType, 'id'>) => Promise<void>;
-  addKategorie: (kategorie: string) => Promise<void>;
-  deleteEintrag: (id: string) => Promise<void>;
-  isAdmin: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
-  logout: () => Promise<void>;
-  user: any;
-};
-
-const HandbuchContext = createContext<HandbuchContextType | undefined>(undefined);
-
-export const HandbuchProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [eintraege, setEintraege] = useState<EintragType[]>([]);
-  const [kategorien, setKategorien] = useState<string[]>([]);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [user, setUser] = useState<any>(null);
+export const EintragForm: React.FC<EintragFormProps> = ({ editId, onSubmit }) => {
+  const { eintraege, kategorien, addEintrag, updateEintrag } = useHandbuch();
+  const { toast } = useToast();
+  const [kategorie, setKategorie] = useState('');
+  const [fehlermeldung, setFehlermeldung] = useState('');
+  const [beschreibung, setBeschreibung] = useState('');
+  const [loesung, setLoesung] = useState('');
 
   useEffect(() => {
-    loadData();
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-      setIsAdmin(session?.user?.email === 'admin@example.com');
-    });
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, []);
-
-  const loadData = async () => {
-    const { data: eintraegeData, error: eintraegeError } = await supabase
-      .from('eintraege')
-      .select('*');
-    if (eintraegeError) console.error('Fehler beim Laden der Einträge:', eintraegeError);
-    else setEintraege(eintraegeData);
-
-    const { data: kategorienData, error: kategorienError } = await supabase
-      .from('kategorien')
-      .select('name');
-    if (kategorienError) console.error('Fehler beim Laden der Kategorien:', kategorienError);
-    else setKategorien(kategorienData.map(k => k.name));
-  };
-
-  const addEintrag = async (eintrag: Omit<EintragType, 'id'>) => {
-    const { data, error } = await supabase
-      .from('eintraege')
-      .insert([eintrag])
-      .single();
-    if (error) console.error('Fehler beim Hinzufügen des Eintrags:', error);
-    else setEintraege([...eintraege, data]);
-  };
-
-  const updateEintrag = async (id: string, updatedEintrag: Omit<EintragType, 'id'>) => {
-    if (!id) {
-      console.error('Ungültige ID beim Aktualisieren des Eintrags');
-      return;
+    if (editId) {
+      const eintragToEdit = eintraege.find(e => e.id === editId);
+      if (eintragToEdit) {
+        setKategorie(eintragToEdit.kategorie);
+        setFehlermeldung(eintragToEdit.fehlermeldung);
+        setBeschreibung(eintragToEdit.beschreibung);
+        setLoesung(eintragToEdit.loesung);
+      }
     }
-    const { data, error } = await supabase
-      .from('eintraege')
-      .update(updatedEintrag)
-      .eq('id', id)
-      .single();
-    if (error) {
-      console.error('Fehler beim Aktualisieren des Eintrags:', error);
-    } else if (data) {
-      setEintraege(eintraege.map(eintrag => eintrag && eintrag.id === id ? data : eintrag));
-    }
-  };
+  }, [editId, eintraege]);
 
-  const addKategorie = async (kategorie: string) => {
-    if (!kategorien.includes(kategorie)) {
-      const { data, error } = await supabase
-        .from('kategorien')
-        .insert([{ name: kategorie }])
-        .single();
-      if (error) console.error('Fehler beim Hinzufügen der Kategorie:', error);
-      else setKategorien([...kategorien, kategorie]);
-    }
-  };
-
-  const deleteEintrag = async (id: string) => {
-    if (!id) {
-      console.error('Ungültige ID beim Löschen des Eintrags');
-      return;
-    }
-    const { error } = await supabase
-      .from('eintraege')
-      .delete()
-      .eq('id', id);
-    if (error) {
-      console.error('Fehler beim Löschen des Eintrags:', error);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const eintrag = { kategorie, fehlermeldung, beschreibung, loesung };
+    if (editId) {
+      await updateEintrag(editId, eintrag);
+      toast({
+        title: "Eintrag aktualisiert",
+        description: "Der Eintrag wurde erfolgreich aktualisiert.",
+      });
     } else {
-      setEintraege(eintraege.filter(eintrag => eintrag && eintrag.id !== id));
+      await addEintrag(eintrag);
+      toast({
+        title: "Eintrag hinzugefügt",
+        description: "Der neue Eintrag wurde erfolgreich hinzugefügt.",
+      });
     }
-  };
-
-  const login = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      console.error('Anmeldefehler:', error);
-      return false;
-    }
-    return true;
-  };
-
-  const logout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) console.error('Abmeldefehler:', error);
-    setIsAdmin(false);
+    onSubmit();
   };
 
   return (
-    <HandbuchContext.Provider value={{ 
-      eintraege, 
-      kategorien, 
-      addEintrag, 
-      updateEintrag, 
-      addKategorie, 
-      deleteEintrag,
-      isAdmin,
-      login,
-      logout,
-      user
-    }}>
-      {children}
-    </HandbuchContext.Provider>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <Select value={kategorie} onValueChange={setKategorie}>
+        <SelectTrigger>
+          <SelectValue placeholder="Kategorie auswählen" />
+        </SelectTrigger>
+        <SelectContent>
+          {kategorien.map(kat => (
+            <SelectItem key={kat} value={kat}>{kat}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Input
+        placeholder="Fehlermeldung"
+        value={fehlermeldung}
+        onChange={(e) => setFehlermeldung(e.target.value)}
+        required
+      />
+      <Textarea
+        placeholder="Fehlerbeschreibung"
+        value={beschreibung}
+        onChange={(e) => setBeschreibung(e.target.value)}
+        required
+      />
+      <Textarea
+        placeholder="Lösung"
+        value={loesung}
+        onChange={(e) => setLoesung(e.target.value)}
+        required
+      />
+      <DialogClose asChild>
+        <Button type="submit">{editId ? 'Aktualisieren' : 'Hinzufügen'}</Button>
+      </DialogClose>
+    </form>
   );
 };
-
-export const useHandbuch = () => {
-  const context = useContext(HandbuchContext);
-  if (context === undefined) {
-    throw new Error('useHandbuch must be used within a HandbuchProvider');
-  }
-  return context;
-};
-

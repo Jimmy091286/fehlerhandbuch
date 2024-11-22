@@ -87,4 +87,3 @@ export const EintragForm: React.FC<EintragFormProps> = ({ editId, onSubmit }) =>
     </form>
   );
 };
-
