@@ -75,7 +75,7 @@ export const EintragListe: React.FC = () => {
                   <DialogHeader>
                     <DialogTitle>Eintrag bearbeiten</DialogTitle>
                     <DialogDescription>
-                      Ändern Sie die Details des Eintrags und klicken Sie auf 'Aktualisieren'.
+                      Ändern Sie die Details des Eintrags und klicken Sie auf &apos;Aktualisieren&apos;.
                     </DialogDescription>
                   </DialogHeader>
                   <EintragForm editId={selectedEintrag.id} onSubmit={() => setEditId(null)} />

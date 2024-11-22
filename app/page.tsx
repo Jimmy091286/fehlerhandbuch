@@ -29,7 +29,7 @@ function AdminSection() {
             <DialogHeader>
               <DialogTitle>Neuen Eintrag hinzufügen</DialogTitle>
               <DialogDescription>
-                Füllen Sie die Details für den neuen Eintrag aus und klicken Sie auf 'Hinzufügen'.
+                Füllen Sie die Details für den neuen Eintrag aus und klicken Sie auf &apos;Hinzufügen&apos;.
               </DialogDescription>
             </DialogHeader>
             <EintragForm onSubmit={() => {}} />
