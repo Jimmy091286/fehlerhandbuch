@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast"
 export const EintragListe: React.FC = () => {
   const { eintraege, deleteEintrag, kategorien, isAdmin } = useHandbuch();
   const { toast } = useToast();
-  const [editId, setEditId] = useState<string | null>(null);
+  const [, setEditId] = useState<string | null>(null);
   const [selectedKategorie, setSelectedKategorie] = useState<string>('');
   const [selectedFehlermeldung, setSelectedFehlermeldung] = useState<string>('');
 
